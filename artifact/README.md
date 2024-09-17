@@ -1,5 +1,6 @@
 # Reproduction Package
-- `evaluation_code.tar.gz` - contains the evaluation code `fuzzing-analysis` used to build the Docker container and perform experiments either from scratch or reproduce results as presented in the CCS'24 paper.
+- `evaluation_code.tar.gz` - Download from [Zenodo](https://zenodo.org/records/13332863) 
+    - Contains the evaluation code  `fuzzing-analysis` used to build the Docker container and perform experiments either from scratch or reproduce results as presented in the CCS'24 paper.
 
 # Docker image setup
 
