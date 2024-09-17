@@ -8,7 +8,7 @@ The key features implemented by FOX are:
 - Custom mutator logic: Mutations adopt Newton's search method to synthesize branch-flipping inputs.
 - Changes to the LLVM instrumentation pass to allow efficient branch distance calculation
 
-Checkout our [CCS'24](https://arxiv.org/abs/2406.04517) paper for more technical details about the project.
+This project is accepted at CCS'24 and will be presented there. Checkout our [paper](https://arxiv.org/abs/2406.04517) for more technical details about the project.
 Refer to the instructions present in `artifact/` where we provide detailed instructions to reproduce our experimental results
 and also detail instructions on how to run FOX on new targets.   
 <br/>
