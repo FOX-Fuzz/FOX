@@ -1,6 +1,5 @@
 # FOX - Coverage-guided Fuzzing as Online Stochastic Control
 
-<a href="https://arxiv.org/abs/2406.04517" target="_blank"><img src="artifact/paper_preview.png" align="right" width="280"></a>
 
 FOX presents a control-theoretic approach to perform coverage-guided fuzzing. The current prototype is built on top of [AFL++](https://github.com/AFLplusplus/AFLplusplus/).
 The key features implemented by FOX are:
