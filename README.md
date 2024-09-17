@@ -1,6 +1,8 @@
 # FOX - Coverage-guided Fuzzing as Online Stochastic Control
 
-FOX presents a control-theoretic approach to perform coverage-guided fuzzing. The current prototype is built on top of AFL++.
+<a href="https://arxiv.org/abs/2406.0517" target="_blank"><img src="paper/preview/FishFuzz-preview.png" align="right" width="280"></a>
+
+FOX presents a control-theoretic approach to perform coverage-guided fuzzing. The current prototype is built on top of [AFL++](https://github.com/AFLplusplus/AFLplusplus/).
 The key features implemented by FOX are:
 - Custom scheduler logic: Scheduling is done over frontier branches instead of seeds.
 - Custom mutator logic: Mutations adopt Newton's search method to synthesize branch-flipping inputs.
