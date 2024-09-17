@@ -5,7 +5,7 @@ built on top of AFL++. The key features implemented by FOX are:
 - Custom scheduler logic: Scheduling is done over frontier branches instead of seeds.
 - Custom mutator logic: Mutations adopt Newton's search method to synthesize branch-flipping inputs.
 
-Checkout our [CCS'24](https://arxiv.org/abs/2406.0517) paper for more technical details about the project.
+Checkout our [CCS'24](https://arxiv.org/abs/2406.04517) paper for more technical details about the project.
 
 # Cite 
 
