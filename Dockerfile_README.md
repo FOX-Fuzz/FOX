@@ -10,7 +10,7 @@ Follow Steps 1-3
 *Build FOX image from Dockerfile (replace Dockerfile ../ with file path)*
 
 ```
-docker build --build-arg USER_NAME=$USER --build-arg UID=$(id -u) --build-arg GID=$(id -u) -t "adamstorek/fox:latest" -f Dockerfile ../
+docker build --build-arg USER_NAME=$USER --build-arg UID=$(id -u) --build-arg GID=$(id -u) -t "adamstorek/fox:latest" -f Dockerfile ../ .
 ```
 
 *Run* 
