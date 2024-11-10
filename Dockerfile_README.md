@@ -8,6 +8,7 @@ Follow Steps 1-3
 
 # Image Procurement 
 *Build FOX image from Dockerfile (replace Dockerfile ../ with file path)*
+*When building, make sure to build inside ../fuzzing-analysis/fuzzdeployment*
 
 ```
 docker build --build-arg USER_NAME=$USER --build-arg UID=$(id -u) --build-arg GID=$(id -u) -t "adamstorek/fox:latest" -f Dockerfile ../ .
