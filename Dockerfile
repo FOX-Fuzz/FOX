@@ -76,7 +76,7 @@ WORKDIR /workspace
 RUN mkdir -p /home/$USER_NAME/.local/bin
 ENV PATH="/home/$USER_NAME/.local/bin:/usr/local/go/bin:/workspace/gllvm_bins:${PATH}"
 RUN echo "export PATH=$PATH" >> ~/.bashrc
-# 
+#
 # # AFL++ env variables
 ENV NO_ARCH_OPT=1
 ENV IS_DOCKER=1
@@ -94,7 +94,7 @@ RUN git clone https://github.com/FOX-Fuzz/FOX.git OptFuzzer
 
 WORKDIR /workspace/OptFuzzer
 RUN export CC=clang-15 && export CXX=clang++-15 && make clean && \
-    make 
+    make
 
 RUN sudo ln -s /usr/bin/llvm-nm-15 /usr/local/bin/llvm-nm
 
@@ -104,15 +104,15 @@ RUN mkdir -p /workspace/fuzzopt-eval
 WORKDIR /workspace/fuzzopt-eval
 COPY --chown=$UID:$GID  . /workspace/fuzzopt-eval/fuzzdeployment
 
-# Clean up unnecessary directories
-RUN rm -r /workspace/fuzzopt-eval/fuzzdeployment/docker
-RUN rm -r /workspace/fuzzopt-eval/fuzzdeployment/magma_artifact
-
 # Fix python dependencies
 WORKDIR /workspace/fuzzopt-eval/fuzzdeployment/scripts
 RUN pip install "cython<3.0.0" wheel
 RUN pip install "pyyaml==5.4.1" --no-build-isolation
 RUN pip install pyelftools
 RUN pip install -r requirements.txt
+
+# Clean up unnecessary directories
+RUN rm -r /workspace/fuzzopt-eval/fuzzdeployment/docker
+RUN rm -r /workspace/fuzzopt-eval/fuzzdeployment/magma_artifact
 
 WORKDIR /workspace/fuzzopt-eval/fuzzdeployment
