@@ -1,97 +1,118 @@
 #
 # This Dockerfile for AFLplusplus uses Ubuntu 22.04 jammy and
-# installs LLVM 14 for afl-clang-lto support.
-#
-# GCC 11 is used instead of 12 because genhtml for afl-cov doesn't like it.
+# installs LLVM 14 for afl-clang-lto support :-)
 #
 
-FROM ubuntu:22.04 AS aflplusplus
-LABEL "maintainer"="AFL++ team <afl@aflplus.plus>"
-LABEL "about"="AFLplusplus container image"
-
-### Comment out to enable these features
-# Only available on specific ARM64 boards
-ENV NO_CORESIGHT=1
-# Possible but unlikely in a docker container
-ENV NO_NYX=1
-
-### Only change these if you know what you are doing:
-# LLVM 15 does not look good so we stay at 14 to still have LTO
-ENV LLVM_VERSION=14
-# GCC 12 is producing compile errors for some targets so we stay at GCC 11
-ENV GCC_VERSION=11
-
-### No changes beyond the point unless you know what you are doing :)
+FROM ubuntu:focal
+# If we want to use jammy and correspondingly gcc-12, llvm-14, we need to
+# update docker version to 20.x
+# FROM ubuntu:jammy
 
 ARG DEBIAN_FRONTEND=noninteractive
 
 ENV NO_ARCH_OPT=1
-ENV IS_DOCKER=1
-
-RUN apt-get update && apt-get full-upgrade -y && \
-    apt-get install -y --no-install-recommends wget ca-certificates apt-utils && \
-    rm -rf /var/lib/apt/lists/*
-
-RUN echo "deb [signed-by=/etc/apt/keyrings/llvm-snapshot.gpg.key] http://apt.llvm.org/jammy/ llvm-toolchain-jammy-${LLVM_VERSION} main" > /etc/apt/sources.list.d/llvm.list && \
-    wget -qO /etc/apt/keyrings/llvm-snapshot.gpg.key https://apt.llvm.org/llvm-snapshot.gpg.key
 
 RUN apt-get update && \
-    apt-get -y install --no-install-recommends \
-    make cmake automake meson ninja-build bison flex \
-    git xz-utils bzip2 wget jupp nano bash-completion less vim joe ssh psmisc \
-    python3 python3-dev python3-pip python-is-python3 \
-    libtool libtool-bin libglib2.0-dev \
-    apt-transport-https gnupg dialog \
-    gnuplot-nox libpixman-1-dev bc \
-    gcc-${GCC_VERSION} g++-${GCC_VERSION} gcc-${GCC_VERSION}-plugin-dev gdb lcov \
-    clang-${LLVM_VERSION} clang-tools-${LLVM_VERSION} libc++1-${LLVM_VERSION} \
-    libc++-${LLVM_VERSION}-dev libc++abi1-${LLVM_VERSION} libc++abi-${LLVM_VERSION}-dev \
-    libclang1-${LLVM_VERSION} libclang-${LLVM_VERSION}-dev \
-    libclang-common-${LLVM_VERSION}-dev libclang-rt-${LLVM_VERSION}-dev libclang-cpp${LLVM_VERSION} \
-    libclang-cpp${LLVM_VERSION}-dev liblld-${LLVM_VERSION} \
-    liblld-${LLVM_VERSION}-dev liblldb-${LLVM_VERSION} liblldb-${LLVM_VERSION}-dev \
-    libllvm${LLVM_VERSION} libomp-${LLVM_VERSION}-dev libomp5-${LLVM_VERSION} \
-    lld-${LLVM_VERSION} lldb-${LLVM_VERSION} llvm-${LLVM_VERSION} \
-    llvm-${LLVM_VERSION}-dev llvm-${LLVM_VERSION}-runtime llvm-${LLVM_VERSION}-tools \
-    $([ "$(dpkg --print-architecture)" = "amd64" ] && echo gcc-${GCC_VERSION}-multilib gcc-multilib) \
-    $([ "$(dpkg --print-architecture)" = "arm64" ] && echo libcapstone-dev) && \
-    rm -rf /var/lib/apt/lists/*
-    # gcc-multilib is only used for -m32 support on x86
-    # libcapstone-dev is used for coresight_mode on arm64
+    apt-get -y install --no-install-suggests --no-install-recommends \
+    # AFL++ dependencies
+    automake \
+    cmake \
+    meson \
+    ninja-build \
+    bison flex \
+    build-essential \
+    git \
+    python3 python3-dev python3-setuptools python-is-python3 \
+    libtool libtool-bin \
+    libglib2.0-dev \
+    libcairo2-dev \
+    wget vim jupp nano bash-completion less \
+    apt-utils apt-transport-https ca-certificates gnupg dialog \
+    libpixman-1-dev \
+    gnuplot-nox \
+    # Unzip seeds
+    unzip \
+    # QoL + Eval pipeline dependencies
+    sudo screen beanstalkd python3-pip python3.8-venv \
+    && rm -rf /var/lib/apt/lists/*
 
-RUN update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-${GCC_VERSION} 0 && \
-    update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-${GCC_VERSION} 0 && \
-    update-alternatives --install /usr/bin/clang clang /usr/bin/clang-${LLVM_VERSION} 0 && \
-    update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-${LLVM_VERSION} 0
 
-RUN wget -qO- https://sh.rustup.rs | CARGO_HOME=/etc/cargo sh -s -- -y -q --no-modify-path
-ENV PATH=$PATH:/etc/cargo/bin
+RUN apt-get update && \
+    apt-get -y install --no-install-suggests --no-install-recommends \
+    lsb-release wget software-properties-common gnupg
 
-RUN apt clean -y
+RUN wget https://apt.llvm.org/llvm.sh
+RUN chmod +x llvm.sh
+RUN sudo ./llvm.sh 15
 
-ENV LLVM_CONFIG=llvm-config-${LLVM_VERSION}
+RUN update-alternatives --install /usr/bin/clang clang /usr/bin/clang-15 10 \
+                        --slave /usr/bin/clang++ clang++ /usr/bin/clang++-15 \
+                        --slave /usr/bin/opt opt /usr/bin/opt-15
+RUN update-alternatives --install /usr/lib/llvm llvm /usr/lib/llvm-15 20 \
+                        --slave /usr/bin/llvm-config llvm-config /usr/bin/llvm-config-15 \
+                        --slave /usr/bin/llvm-link llvm-link /usr/bin/llvm-link-15
+
+
+# Setup a new user
+
+# Make the user reflect the host user
+ARG USER_NAME=docker
+ARG UID=1000
+ARG GID=1000
+
+RUN groupadd -g $GID -o $USER_NAME
+RUN useradd -m -u $UID -g $GID -G sudo -o -s /bin/bash -d /home/$USER_NAME $USER_NAME
+RUN echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
+
+# Move into userland
+USER $USER_NAME
+
+# Prepare the user's workspace
+RUN sudo mkdir -p /workspace && \
+    sudo chown $USER_NAME:$USER_NAME /workspace
+WORKDIR /workspace
+
+# Add ~/.local/bin and /usr/local/go/bin to the PATH
+RUN mkdir -p /home/$USER_NAME/.local/bin
+ENV PATH="/home/$USER_NAME/.local/bin:/usr/local/go/bin:/workspace/gllvm_bins:${PATH}"
+RUN echo "export PATH=$PATH" >> ~/.bashrc
+# 
+# # AFL++ env variables
+ENV NO_ARCH_OPT=1
+ENV IS_DOCKER=1
+
+ENV NO_CORESIGHT=1
+ENV NO_NYX=1
+
+ENV LLVM_CONFIG=llvm-config-15
 ENV AFL_SKIP_CPUFREQ=1
 ENV AFL_TRY_AFFINITY=1
 ENV AFL_I_DONT_CARE_ABOUT_MISSING_CRASHES=1
 
-RUN git clone --depth=1 https://github.com/vanhauser-thc/afl-cov && \
-    (cd afl-cov && make install) && rm -rf afl-cov
+# Import and setup OptFuzz
+RUN git clone https://github.com/FOX-Fuzz/FOX.git OptFuzzer
 
-WORKDIR /AFLplusplus
-COPY . .
+WORKDIR /workspace/OptFuzzer
+RUN export CC=clang-15 && export CXX=clang++-15 && make clean && \
+    make 
 
-ARG CC=gcc-$GCC_VERSION
-ARG CXX=g++-$GCC_VERSION
+RUN sudo ln -s /usr/bin/llvm-nm-15 /usr/local/bin/llvm-nm
 
-# Used in CI to prevent a 'make clean' which would remove the binaries to be tested
-ARG TEST_BUILD
+# Add evaluation pipeline
+WORKDIR /workspace
+RUN mkdir -p /workspace/fuzzopt-eval
+WORKDIR /workspace/fuzzopt-eval
+COPY --chown=$UID:$GID  . /workspace/fuzzopt-eval/fuzzdeployment
 
-RUN sed -i.bak 's/^	-/	/g' GNUmakefile && \
-    make clean && make distrib && \
-    ([ "${TEST_BUILD}" ] || (make install && make clean)) && \
-    mv GNUmakefile.bak GNUmakefile
+# Clean up unnecessary directories
+RUN rm -r /workspace/fuzzopt-eval/fuzzdeployment/docker
+RUN rm -r /workspace/fuzzopt-eval/fuzzdeployment/magma_artifact
 
-RUN echo "set encoding=utf-8" > /root/.vimrc && \
-    echo ". /etc/bash_completion" >> ~/.bashrc && \
-    echo 'alias joe="joe --wordwrap --joe_state -nobackup"' >> ~/.bashrc && \
-    echo "export PS1='"'[AFL++ \h] \w \$ '"'" >> ~/.bashrc
+# Fix python dependencies
+WORKDIR /workspace/fuzzopt-eval/fuzzdeployment/scripts
+RUN pip install "cython<3.0.0" wheel
+RUN pip install "pyyaml==5.4.1" --no-build-isolation
+RUN pip install pyelftools
+RUN pip install -r requirements.txt
+
+WORKDIR /workspace/fuzzopt-eval/fuzzdeployment
